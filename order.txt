@@ -1,5 +1,53 @@
-python -m streamlit run app.py
+## 🤖 Patent Insight Engine 프로젝트 필수 명령어 모음
 
+### 1. VS Code (에디터 단축키)
 
-git config --global user.name "eleugene"
-git config --global user.email "jennynsam0826@google.com"
+Cmd + Shift + P : 명령 팔레트 열기. VS Code의 모든 기능(인터프리터 선택, 환경 생성 등)을 검색하고 실행하는 가장 중요한 단축키입니다.
+
+Cmd + , : 설정 창 열기. VS Code의 세부 설정을 변경할 때 사용합니다.
+
+Ctrl + \`` : **터미널 열기/숨기기**. 코드와 터미널을 빠르게 오갈 때 유용합니다. (백틱  기호는 숫자 1 키 왼쪽에 있습니다.)
+
+Cmd + S : 파일 저장.
+
+### 2. Git (버전 관리)
+
+git init : 저장소 초기화. 프로젝트 폴더에서 맨 처음 딱 한 번만 실행합니다.
+
+git add . : 모든 변경사항 추가. 내가 수정한 모든 파일들을 '저장할 준비' 상태로 만듭니다.
+
+git commit -m "메시지" : 변경사항 기록(저장). "메시지" 부분에 어떤 작업을 했는지 명확하게 적는 것이 중요합니다. (예: "feat: 특허 목록 표시 기능 추가")
+
+git push : 원격 저장소에 업로드. 내 컴퓨터의 저장 내용을 GitHub에 백업합니다.
+
+git pull : 원격 저장소에서 다운로드. 다른 컴퓨터에서 작업을 시작할 때, GitHub의 최신 코드를 내 컴퓨터로 가져옵니다.
+
+git remote -v : 연결된 원격 저장소 주소 확인.
+
+git remote set-url origin [주소] : 원격 저장소 주소 변경. push가 안 될 때 주소가 잘못되었는지 확인하고 이 명령어로 수정합니다.
+
+git checkout -b [브랜치이름] : 새로운 기능 개발을 위한 브랜치(가지) 생성.
+
+git checkout [브랜치이름] : 다른 브랜치로 이동.
+
+git merge [브랜치이름] : 다른 브랜치의 작업 내용을 현재 브랜치로 합치기.
+
+### 3. 터미널 & 가상환경 (프로젝트 실행 환경)
+
+source .venv/bin/activate : 가상환경 활성화. 터미널을 새로 열었는데 (.venv)가 보이지 않을 때 실행합니다.
+
+deactivate : 가상환경 비활성화.
+
+pip install [라이브러리이름] : 새로운 라이브러리 설치.
+
+pip install -r requirements.txt : requirements.txt에 기록된 모든 라이브러리 한 번에 설치. 다른 PC에서 환경을 복원할 때 사용합니다.
+
+pip freeze > requirements.txt : 현재 설치된 라이브러리 목록을 requirements.txt 파일에 저장(갱신). 새로운 라이브러리를 설치한 후에 꼭 실행해주는 것이 좋습니다.
+
+python --version : 현재 터미널이 사용하고 있는 파이썬 버전 확인.
+
+### 4. Streamlit (웹 앱 실행)
+
+python -m streamlit run app.py : Streamlit 웹 앱 실행. 경로 충돌 없이 가장 안정적으로 앱을 실행하는 명령어입니다.
+
+Ctrl + C : 실행 중인 Streamlit 서버 중지. 터미널에서 커서를 되찾고 싶을 때 사용합니다.
