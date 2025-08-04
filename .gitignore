@@ -1,0 +1,9 @@
+# Virtual Environment
+.venv/
+
+# .env file
+.env
+
+# System files
+__pycache__/
+.DS_Store

@@ -1,0 +1,5 @@
+python -m streamlit run app.py
+
+
+git config --global user.name "eleugene"
+git config --global user.email "jennynsam0826@google.com"
