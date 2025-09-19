@@ -10,7 +10,7 @@ import json
 from datetime import datetime
 import matplotlib.pyplot as plt
 import pandas as pd
-# ↓ koreanize_matplotlib 제거 - distutils 문제 해결!
+import matplotlib.font_manager as fm  # 폰트 관련 용도 as fm
 
 # 향상된 모듈 임포트
 from src.kipris_handler import search_all_patents, get_patent_details
@@ -21,31 +21,27 @@ load_dotenv()
 KIPRIS_API_KEY = os.getenv("KIPRIS_API_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
+@st.cache_data
+def fontRegistered():
+    font_dirs = [os.getcwd() + '/customFonts']
+    font_files = fm.findSystemFonts(fontpaths=font_dirs)
+
+    for font_file in font_files:
+        fm.fontManager.addfont(font_file)
+    fm._load_fontmanager(try_read_cache=False)
+
 def setup_korean_font():
     """Windows/Mac/Linux 환경에서 한글 폰트 자동 설정 - distutils 의존성 없음"""
-    try:
-        if os.name == 'nt':  # Windows
-            plt.rcParams['font.family'] = 'Malgun Gothic'
-            plt.rcParams['axes.unicode_minus'] = False
-            return True
-        elif os.name == 'posix':  # Mac/Linux
-            try:
-                plt.rcParams['font.family'] = 'AppleGothic'
-                plt.rcParams['axes.unicode_minus'] = False
-                return True
-            except:
-                plt.rcParams['font.family'] = 'DejaVu Sans'
-                plt.rcParams['axes.unicode_minus'] = False
-                return False
-        else:
-            plt.rcParams['font.family'] = 'DejaVu Sans'
-            plt.rcParams['axes.unicode_minus'] = False
-            return False
-    except Exception as e:
-        print(f"한글 폰트 설정 실패: {e}")
-        plt.rcParams['font.family'] = 'DejaVu Sans'
+    if os.name == 'nt':  # Windows
+        plt.rcParams['font.family'] = 'Malgun Gothic'
         plt.rcParams['axes.unicode_minus'] = False
-        return False
+        return True
+    else:  # Mac/Linux
+        fontRegistered()
+        plt.rcParams['font.family'] = 'Noto Sans KR'
+        plt.rcParams['axes.unicode_minus'] = False
+        return True
+            
 
 if not KIPRIS_API_KEY or not GEMINI_API_KEY:
     st.error("API 키가 설정되지 않았습니다.")
@@ -120,7 +116,7 @@ st.markdown('<div class="sub-title">distutils 완전 해결 + 직접 한글 폰�
 
 # 세션 상태 초기화
 if 'patents' not in st.session_state:
-    st.session_state.patents = []
+    st.session_state.patents = [True]
 if 'analyzer' not in st.session_state:
     st.session_state.analyzer = AdvancedPatentAnalyzer(GEMINI_API_KEY)
 
