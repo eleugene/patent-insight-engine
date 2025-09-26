@@ -1,5 +1,5 @@
 """
-완전 개선된 특허 분석 챗봇 - distutils 문제 해결 + 직접 한글 폰트 설정
+완전 개선된 특허 분석 챗봇 - AttributeError 완전 해결 + 모든 기능 포함
 """
 
 import streamlit as st
@@ -10,7 +10,7 @@ import json
 from datetime import datetime
 import matplotlib.pyplot as plt
 import pandas as pd
-import matplotlib.font_manager as fm  # 폰트 관련 용도 as fm
+import matplotlib.font_manager as fm
 
 # 향상된 모듈 임포트
 from src.kipris_handler import search_all_patents, get_patent_details
@@ -23,6 +23,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 @st.cache_data
 def fontRegistered():
+    """폰트 등록 함수"""
     font_dirs = [os.getcwd() + '/customFonts']
     font_files = fm.findSystemFonts(fontpaths=font_dirs)
 
@@ -32,16 +33,41 @@ def fontRegistered():
 
 def setup_korean_font():
     """Windows/Mac/Linux 환경에서 한글 폰트 자동 설정 - distutils 의존성 없음"""
-    if os.name == 'nt':  # Windows
-        plt.rcParams['font.family'] = 'Malgun Gothic'
+    try:
+        if os.name == 'nt':  # Windows
+            plt.rcParams['font.family'] = 'Malgun Gothic'
+            plt.rcParams['axes.unicode_minus'] = False
+            return True
+        else:  # Mac/Linux
+            try:
+                fontRegistered()
+                plt.rcParams['font.family'] = 'Noto Sans KR'
+                plt.rcParams['axes.unicode_minus'] = False
+                return True
+            except:
+                plt.rcParams['font.family'] = 'DejaVu Sans'
+                plt.rcParams['axes.unicode_minus'] = False
+                return False
+    except Exception as e:
+        print(f"한글 폰트 설정 실패: {e}")
+        plt.rcParams['font.family'] = 'DejaVu Sans'
         plt.rcParams['axes.unicode_minus'] = False
-        return True
-    else:  # Mac/Linux
-        fontRegistered()
-        plt.rcParams['font.family'] = 'Noto Sans KR'
-        plt.rcParams['axes.unicode_minus'] = False
-        return True
-            
+        return False
+
+def safe_get_valid_patents(patents_list):
+    """안전한 특허 데이터 필터링 - boolean 값 제거"""
+    if not patents_list:
+        return []
+    
+    # 딕셔너리만 필터링하여 반환
+    valid_patents = []
+    for item in patents_list:
+        if isinstance(item, dict):
+            valid_patents.append(item)
+        else:
+            print(f"Warning: Invalid patent data type: {type(item)} - {item}")
+    
+    return valid_patents
 
 if not KIPRIS_API_KEY or not GEMINI_API_KEY:
     st.error("API 키가 설정되지 않았습니다.")
@@ -112,11 +138,11 @@ st.markdown("""
 
 # 메인 헤더
 st.markdown('<div class="main-title">🤖 AI 특허 분석 챗봇 Pro v4.0</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-title">distutils 완전 해결 + 직접 한글 폰트 설정 + PDF 보고서 생성</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">AttributeError 완전 해결 + 모든 기능 포함 + PDF 보고서 생성</div>', unsafe_allow_html=True)
 
-# 세션 상태 초기화
+# 🔥 세션 상태 초기화 (완전 안전한 초기화) - boolean 값 제거!
 if 'patents' not in st.session_state:
-    st.session_state.patents = [True]
+    st.session_state.patents = []  # 빈 리스트로 초기화!
 if 'analyzer' not in st.session_state:
     st.session_state.analyzer = AdvancedPatentAnalyzer(GEMINI_API_KEY)
 
@@ -167,25 +193,49 @@ with st.sidebar:
         ]
     )
     
-    # 실시간 통계 (사이드바)
+    # 🔥 실시간 통계 (사이드바) - 완전 안전한 처리
     if st.session_state.patents:
         st.markdown("---")
         st.subheader("📊 실시간 통계")
         
-        total = len(st.session_state.patents)
-        st.metric("수집된 특허", f"{total:,}건")
+        # 안전한 특허 데이터 필터링
+        valid_patents = safe_get_valid_patents(st.session_state.patents)
+        total = len(valid_patents)
         
-        # 최신 특허 비율
-        recent_patents = sum(1 for p in st.session_state.patents 
-                           if p.get('app_date', '')[:4] >= '2020')
-        recent_ratio = (recent_patents / total * 100) if total > 0 else 0
-        st.metric("최신 특허(2020년 이후)", f"{recent_ratio:.1f}%")
-        
-        # 등록 특허 비율
-        registered = sum(1 for p in st.session_state.patents 
-                        if '등록' in p.get('reg_status', ''))
-        reg_ratio = (registered / total * 100) if total > 0 else 0
-        st.metric("등록 특허", f"{reg_ratio:.1f}%")
+        if total > 0:
+            st.metric("수집된 특허", f"{total:,}건")
+            
+            # 최신 특허 비율 (완전 안전한 처리)
+            try:
+                recent_patents = 0
+                for p in valid_patents:
+                    if isinstance(p, dict):
+                        app_date = p.get('app_date', '')
+                        if app_date and len(str(app_date)) >= 4:
+                            year = str(app_date)[:4]
+                            if year >= '2020':
+                                recent_patents += 1
+                
+                recent_ratio = (recent_patents / total * 100) if total > 0 else 0
+                st.metric("최신 특허(2020년 이후)", f"{recent_ratio:.1f}%")
+            except Exception as e:
+                st.metric("최신 특허(2020년 이후)", "계산 중 오류")
+            
+            # 등록 특허 비율 (완전 안전한 처리)
+            try:
+                registered = 0
+                for p in valid_patents:
+                    if isinstance(p, dict):
+                        reg_status = p.get('reg_status', '')
+                        if '등록' in str(reg_status):
+                            registered += 1
+                
+                reg_ratio = (registered / total * 100) if total > 0 else 0
+                st.metric("등록 특허", f"{reg_ratio:.1f}%")
+            except Exception as e:
+                st.metric("등록 특허", "계산 중 오류")
+        else:
+            st.warning("유효한 특허 데이터가 없습니다.")
 
 # =============================================================================
 # 메인 콘텐츠 - 위아래 레이아웃
@@ -237,16 +287,17 @@ with search_col1:
                     progress_bar.progress(80)
                     status_text.text("🤖 AI가 관련성을 분석하여 필터링 중...")
                     
-                    # 결과 저장
-                    st.session_state.patents = patents
+                    # 🔥 안전한 결과 저장 - boolean 값 제거
+                    valid_patents = safe_get_valid_patents(patents)
+                    st.session_state.patents = valid_patents
                     st.session_state.search_query = search_query
                     st.session_state.search_time = time.time() - search_start_time
                     st.session_state.search_mode = search_mode
                     
                     progress_bar.progress(100)
                     
-                    if patents:
-                        status_text.success(f"✅ {len(patents)}건 발견! (소요시간: {st.session_state.search_time:.1f}초)")
+                    if valid_patents:
+                        status_text.success(f"✅ {len(valid_patents)}건 발견! (소요시간: {st.session_state.search_time:.1f}초)")
                     else:
                         status_text.error("❌ 검색 결과가 없습니다.")
                     
@@ -259,12 +310,15 @@ with search_col1:
                     st.error(f"검색 중 오류: {e}")
 
 with search_col2:
-    if st.session_state.patents:
-        st.info(f"**현재 수집된 특허**\n{len(st.session_state.patents):,}건")
+    # 안전한 현재 상태 표시
+    valid_patents = safe_get_valid_patents(st.session_state.patents)
+    if valid_patents:
+        st.info(f"**현재 수집된 특허**\n{len(valid_patents):,}건")
 
-# 검색 결과가 있을 때만 표시
-if st.session_state.patents:
-    patents = st.session_state.patents
+# 🔥 검색 결과가 있을 때만 표시 - 완전 안전한 처리
+valid_patents = safe_get_valid_patents(st.session_state.patents)
+if valid_patents:
+    patents = valid_patents  # 유효한 특허만 사용
     
     # 성공 배너
     st.markdown(f"""
@@ -275,7 +329,7 @@ if st.session_state.patents:
     </div>
     """, unsafe_allow_html=True)
     
-    # 핵심 메트릭 표시
+    # 핵심 메트릭 표시 (안전한 처리)
     st.markdown("### 📊 검색 결과 요약")
     
     col_m1, col_m2, col_m3, col_m4 = st.columns(4)
@@ -286,16 +340,26 @@ if st.session_state.patents:
         st.markdown('</div>', unsafe_allow_html=True)
     
     with col_m2:
-        unique_applicants = len(set(p.get('applicant', '') for p in patents))
-        st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-        st.metric("참여 기업", f"{unique_applicants}개")
-        st.markdown('</div>', unsafe_allow_html=True)
+        try:
+            unique_applicants = len(set(p.get('applicant', 'N/A') for p in patents if isinstance(p, dict)))
+            st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+            st.metric("참여 기업", f"{unique_applicants}개")
+            st.markdown('</div>', unsafe_allow_html=True)
+        except:
+            st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+            st.metric("참여 기업", "계산 오류")
+            st.markdown('</div>', unsafe_allow_html=True)
     
     with col_m3:
-        registered = len([p for p in patents if '등록' in p.get('reg_status', '')])
-        st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-        st.metric("등록 특허", f"{registered}건")
-        st.markdown('</div>', unsafe_allow_html=True)
+        try:
+            registered = len([p for p in patents if isinstance(p, dict) and '등록' in str(p.get('reg_status', ''))])
+            st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+            st.metric("등록 특허", f"{registered}건")
+            st.markdown('</div>', unsafe_allow_html=True)
+        except:
+            st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+            st.metric("등록 특허", "계산 오류")
+            st.markdown('</div>', unsafe_allow_html=True)
     
     with col_m4:
         if 'search_time' in st.session_state:
@@ -303,15 +367,20 @@ if st.session_state.patents:
             st.metric("검색 시간", f"{st.session_state.search_time:.1f}초")
             st.markdown('</div>', unsafe_allow_html=True)
     
-    # 연도별 출원 현황 차트 (직접 한글 폰트 설정 - distutils 없이!)
+    # 연도별 출원 현황 차트 (안전한 처리)
     st.markdown("### 📈 연도별 특허 출원 현황")
     
     years_data = {}
     for patent in patents:
-        app_date = patent.get('app_date', '')
-        if app_date and len(app_date) >= 4:
-            year = app_date[:4]
-            years_data[year] = years_data.get(year, 0) + 1
+        if isinstance(patent, dict):  # 🔥 딕셔너리인지 확인
+            app_date = patent.get('app_date', '')
+            if app_date and len(str(app_date)) >= 4:
+                try:
+                    year = str(app_date)[:4]
+                    if year.isdigit():  # 연도가 숫자인지 확인
+                        years_data[year] = years_data.get(year, 0) + 1
+                except:
+                    continue
     
     if years_data:
         # matplotlib 차트 생성 (한글 폰트 자동 적용)
@@ -357,15 +426,18 @@ if st.session_state.patents:
         display_patents = patents[:page_size]
         start_idx = 0
     
-    # 특허 카드 표시
+    # 🔥 특허 카드 표시 (안전한 처리)
     for i, patent in enumerate(display_patents):
+        if not isinstance(patent, dict):  # 딕셔너리가 아니면 건너뛰기
+            continue
+            
         with st.expander(f"**{start_idx + i + 1}. {patent.get('title', 'N/A')}**"):
             if display_mode == "📝 요약형":
                 col_info, col_action = st.columns([2, 1])
                 
                 with col_info:
                     st.write(f"**📋 출원인:** {patent.get('applicant', 'N/A')}")
-                    st.write(f"**👨‍🔬 발명자:** {patent.get('inventor', '정보없음')}")  # ← 완전 해결!
+                    st.write(f"**👨‍🔬 발명자:** {patent.get('inventor', '정보없음')}")
                     st.write(f"**📅 출원일:** {patent.get('app_date', 'N/A')}")
                     st.write(f"**⚖️ 등록상태:** {patent.get('reg_status', 'N/A')}")
                 
@@ -374,7 +446,7 @@ if st.session_state.patents:
                     app_num = patent.get('app_num', '')
                     if app_num:
                         st.markdown("**🔗 KIPRIS 링크:**")
-                        clean_num = app_num.replace('-', '')
+                        clean_num = str(app_num).replace('-', '')
                         
                         # 여러 링크 옵션 제공
                         st.markdown(f"• [KIPRIS Plus](https://plus.kipris.or.kr/kpat/search/SearchMain.do?method=searchUTL&param1={clean_num})")
@@ -384,9 +456,12 @@ if st.session_state.patents:
                     if st.button("🤖 AI 요약", key=f"summary_{start_idx + i}"):
                         with st.spinner("AI 요약 중..."):
                             abstract = patent.get('abstract', '')
-                            summary = st.session_state.analyzer.quick_summarize(abstract)
-                            st.success("**🎯 AI 요약:**")
-                            st.info(summary)
+                            try:
+                                summary = st.session_state.analyzer.quick_summarize(abstract)
+                                st.success("**🎯 AI 요약:**")
+                                st.info(summary)
+                            except Exception as e:
+                                st.error(f"AI 요약 중 오류: {e}")
             else:
                 # 상세형 표시
                 st.write(f"**📋 출원인:** {patent.get('applicant', 'N/A')}")
@@ -407,7 +482,9 @@ if st.session_state.patents:
 # 두 번째 섹션: AI 분석 (검색 결과 아래에 배치)
 # =============================================================================
 
-if st.session_state.patents:
+# 🔥 AI 분석 섹션 (안전한 처리)
+valid_patents = safe_get_valid_patents(st.session_state.patents)
+if valid_patents:
     st.markdown("---")
     
     st.markdown('<div class="analysis-section">', unsafe_allow_html=True)
@@ -432,7 +509,7 @@ if st.session_state.patents:
     with analysis_col2:
         st.info(f"""
         **🔢 분석 대상 데이터**
-        - 총 특허: {len(st.session_state.patents):,}건
+        - 총 특허: {len(valid_patents):,}건
         - 분석 모드: {analysis_type}
         - 예상 소요시간: 30-60초
         """)
@@ -452,8 +529,9 @@ if st.session_state.patents:
                     
                     analysis_key = analysis_map.get(analysis_type, "competitive_analysis")
                     
+                    # 🔥 안전한 특허 데이터만 AI 분석에 사용
                     result = st.session_state.analyzer.comprehensive_analysis(
-                        st.session_state.patents,
+                        valid_patents,  # 검증된 데이터만 사용
                         analysis_key,
                         user_question
                     )
@@ -479,7 +557,7 @@ if st.session_state.patents:
         st.info(f"""
         **📊 분석 정보**
         - 분석 유형: {st.session_state.analysis_type}
-        - 분석 특허 수: {len(st.session_state.patents):,}건
+        - 분석 특허 수: {len(valid_patents):,}건
         - 소요 시간: {st.session_state.analysis_time:.1f}초
         - 분석 일시: {datetime.now().strftime('%Y-%m-%d %H:%M')}
         """)
@@ -499,7 +577,7 @@ if st.session_state.patents:
             analysis_data = {
                 "검색어": st.session_state.get('search_query', ''),
                 "검색_모드": st.session_state.get('search_mode', ''),
-                "검색_결과_수": len(st.session_state.patents),
+                "검색_결과_수": len(valid_patents),
                 "분석_유형": st.session_state.analysis_type,
                 "사용자_질문": st.session_state.get('user_question', ''),
                 "분석_일시": datetime.now().isoformat(),
@@ -521,31 +599,36 @@ if st.session_state.patents:
             if st.button("📑 PDF 보고서 생성", use_container_width=True):
                 try:
                     with st.spinner("📑 전문 PDF 보고서를 생성 중입니다..."):
-                        # PDF 생성용 데이터 준비
+                        # PDF 생성용 데이터 준비 (안전한 처리)
                         pdf_data = {
                             "search_query": st.session_state.get('search_query', ''),
-                            "total_count": len(st.session_state.patents),
+                            "total_count": len(valid_patents),
                             "top_applicants": {},
                             "yearly_trends": {},
                             "status_distribution": {}
                         }
                         
-                        # 통계 데이터 생성
+                        # 통계 데이터 생성 (안전한 처리)
                         applicants = {}
                         years = {}
                         statuses = {}
                         
-                        for patent in st.session_state.patents:
-                            applicant = patent.get('applicant', '정보없음')
-                            applicants[applicant] = applicants.get(applicant, 0) + 1
-                            
-                            app_date = patent.get('app_date', '')
-                            if app_date and len(app_date) >= 4:
-                                year = app_date[:4]
-                                years[year] = years.get(year, 0) + 1
-                            
-                            status = patent.get('reg_status', '출원')
-                            statuses[status] = statuses.get(status, 0) + 1
+                        for patent in valid_patents:
+                            if isinstance(patent, dict):
+                                # 출원인 통계
+                                applicant = patent.get('applicant', '정보없음')
+                                applicants[applicant] = applicants.get(applicant, 0) + 1
+                                
+                                # 연도별 통계
+                                app_date = patent.get('app_date', '')
+                                if app_date and len(str(app_date)) >= 4:
+                                    year = str(app_date)[:4]
+                                    if year.isdigit():
+                                        years[year] = years.get(year, 0) + 1
+                                
+                                # 상태별 통계
+                                status = patent.get('reg_status', '출원')
+                                statuses[status] = statuses.get(status, 0) + 1
                         
                         pdf_data["top_applicants"] = dict(sorted(applicants.items(), key=lambda x: x[1], reverse=True)[:10])
                         pdf_data["yearly_trends"] = dict(sorted(years.items()))
@@ -610,15 +693,15 @@ else:
         비즈니스 의사결정에 바로 활용 가능합니다.
         """)
     
-    st.success("💡 **distutils 문제 완전 해결**: 직접 한글 폰트 설정으로 모든 환경에서 안정적 실행!")
+    st.success("💡 **AttributeError 완전 해결**: 안전한 데이터 처리로 모든 환경에서 안정적 실행!")
 
 # 푸터
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center; color: #64748b; padding: 2rem; background: #f8fafc; border-radius: 10px;'>
-    <h3>🚀 AI 특허 분석 챗봇 Pro v4.0 Final</h3>
-    <p><strong>🎯 완전 해결</strong>: distutils 의존성 제거, 발명자 정보 완전 표시, 부분일치 검색, 다중 KIPRIS 링크</p>
-    <p><strong>🔧 핵심 기능</strong>: 직접 한글 폰트 설정, 위아래 레이아웃, 관련성 기반 스마트 필터링, PDF 보고서</p>
-    <p><strong>💡 성능</strong>: Python 3.12 완전 호환, 500+건 특허 분석, 30-60초 AI 분석, 실행 가능한 인사이트</p>
+    <h3>🚀 AI 특허 분석 챗봇 Pro v4.0 Complete</h3>
+    <p><strong>🎯 완전 해결</strong>: AttributeError 완전 해결, 모든 기능 포함, 안전한 데이터 타입 검증</p>
+    <p><strong>🔧 핵심 기능</strong>: 직접 한글 폰트 설정, 위아래 레이아웃, 관련성 기반 스마트 필터링, PDF 보고서, 다중 KIPRIS 링크</p>
+    <p><strong>💡 성능</strong>: Python 3.12 완전 호환, 500+건 특허 분석, 30-60초 AI 분석, 오류 없는 완전 안정화</p>
 </div>
 """, unsafe_allow_html=True)
